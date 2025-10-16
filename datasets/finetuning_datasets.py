@@ -45,7 +45,7 @@ class FinetuningDataset(BaseFinetuning):
     def __getitem__(self, idx: int):
 
         #NOTE: remember not to load to cuda here
-        wav = self.X_data[idx][np.newaxis,:].astype('float32')
+        wav = self.X_data[idx].astype('float32')
         specs = self.extracter(wav)
         length = specs.shape[0]
         return {

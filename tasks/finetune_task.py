@@ -9,7 +9,7 @@ from tasks import register_task
 from tasks.base_task import BaseTask
 from tasks.batch_utils import finetune_collator
 from util.tensorboard_utils import plot_tensorboard_line
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, accuracy_score
 from datasets.finetuning_datasets import FinetuningDataset
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Subset
@@ -23,13 +23,15 @@ class FinetuneTask(BaseTask):
 
     def load_datasets(self, X_train, y_train, X_test, y_test, preprocessor_cfg):
         dataset = FinetuningDataset(X_train, y_train, preprocessor_cfg)
+        dataset[0]
         all_idxs = list(range(len(dataset))) 
         val_split_percent = 0.2 #TODO hardcode
         val_size = int(val_split_percent*len(all_idxs))
 
         train_idxs, val_idxs = train_test_split(all_idxs, test_size=val_size, random_state=42)   
+        self.dataset = dataset
         self.train_set = Subset(dataset, train_idxs)
-        self.val_set = Subset(dataset, val_idxs)
+        self.valid_set = Subset(dataset, val_idxs)
 
         self.test_set = FinetuningDataset(X_train, y_train, preprocessor_cfg)
         
@@ -67,9 +69,12 @@ class FinetuneTask(BaseTask):
         labels = np.array([x for y in labels for x in y])
         predicts = [np.array([p]) if len(p.shape)==0 else p for p in predicts]
         predicts = np.concatenate(predicts)
+        assert len(set(labels)) == 2
         roc_auc = roc_auc_score(labels, predicts)
+        accuracy = accuracy_score(labels, np.round(predicts))
         all_outs["loss"] /= len(valid_loader)
         all_outs["roc_auc"] = roc_auc
+        all_outs["accuracy"] = accuracy
         return all_outs
 
     def get_batch_iterator(self, dataset, batch_size, shuffle=True, **kwargs):

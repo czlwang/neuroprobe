@@ -3,6 +3,7 @@ import models
 import criterions
 import datasets
 from omegaconf import DictConfig, OmegaConf
+from runner import Runner
 
 from neuroprobe.braintreebank_subject import BrainTreebankSubject
 import neuroprobe.train_test_splits as neuroprobe_train_test_splits
@@ -48,6 +49,9 @@ parser.add_argument('--preprocess.stft.min_frequency', type=int, default=0, help
 parser.add_argument('--split_type', type=str, choices=splits_options, default='CrossSession', help=f'Type of splits to use ({", ".join(splits_options)})')
 parser.add_argument('--seed', type=int, default=42, help='Random seed')
 parser.add_argument('--only_1second', action='store_true', help='Whether to only evaluate on 1 second after word onset') # NOTE: set this to true for the Neuroprobe benchmark
+parser.add_argument('--bin_size_seconds', default=0.25, type=float, help='Size of each time bin') 
+parser.add_argument('--bins_start_before_word_onset_seconds', default=0.5, type=float, help='Where to start time bins') 
+parser.add_argument('--bins_end_after_word_onset_seconds', default=1.5, type=float, help='Where to end time bins') 
 parser.add_argument('--lite', action='store_true', help='Whether to use the lite eval for Neuroprobe (which is the default)')
 parser.add_argument('--electrodes', type=str, default='all', help='Electrode labels to evaluate on. If multiple, separate with commas.')
 parser.add_argument('--classifier_type', type=str, choices=['linear', 'cnn', 'transformer'], default='linear', help='Type of classifier to use for evaluation')
@@ -80,9 +84,9 @@ preprocess_parameters = {
 
 model_name = model_name_from_classifier_type(classifier_type)
 
-bins_start_before_word_onset_seconds = 0.5# if not only_1second else 0
-bins_end_after_word_onset_seconds = 1.5# if not only_1second else 1
-bin_size_seconds = 0.25
+bins_start_before_word_onset_seconds = args.bins_start_before_word_onset_seconds# if not only_1second else 0
+bins_end_after_word_onset_seconds = args.bins_end_after_word_onset_seconds# if not only_1second else 1
+bin_size_seconds = args.bin_size_seconds
 bin_step_size_seconds = 0.125
 
 bin_starts = []
@@ -212,66 +216,19 @@ for eval_name in eval_names:
                 task = tasks.setup_task(task_cfg)
                 preprocessor_cfg = OmegaConf.create({"name": "stft", "freq_channel_cutoff": 40, "nperseg": 400, "noverlap": 350, "normalizing": "zscore"})
                 task.load_datasets(X_train, y_train, X_test, y_test, preprocessor_cfg)
-                import pdb; pdb.set_trace()
                 model_cfg = OmegaConf.create({'name': 'finetune_model', 'hidden_dim': 768, 'input_dim': 40, 'upstream_ckpt': '/storage/czw/self_supervised_seeg/pretrained_weights/superlet_large_pretrained.pth', 'frozen_upstream': False})
                 model = task.build_model(model_cfg)
-                #task.load_datasets(cfg.data, cfg.preprocessor)
+                criterion_cfg = OmegaConf.create({'name': 'finetune_criterion'})
+                criterion = task.build_criterion(criterion_cfg)
+                exp_runner_cfg = OmegaConf.create({'lr': 0.001, 'optim': 'AdamW_finetune', 'train_batch_size': 64, 'valid_batch_size': 128, 'shuffle': False, 'multi_gpu': True, 'device': 'cuda', 'total_steps': 1000, 'num_workers': 32, 'log_step': 100, 'checkpoint_step': 100, 'grad_clip': 1.0, 'output_tb': False, 'scheduler': {'name': 'reduce_on_plateau', 'total_steps': '${exp.runner.total_steps}'}})
+                runner = Runner(exp_runner_cfg, task, model, criterion)
+                best_model = runner.train()
+                test_results = runner.test(best_model)
 
-                X_train = scaler.fit_transform(X_train)
-                X_test = scaler.transform(X_test)
-
-
-                '''
-                <end>
-                '''
-
-                # Train logistic regression
-                if classifier_type == 'linear':
-                    clf = LogisticRegression(random_state=seed, max_iter=10000, tol=1e-3)
-                elif classifier_type == 'cnn':
-                    X_train = X_train.reshape(original_X_train_shape)
-                    X_test = X_test.reshape(original_X_test_shape)
-                    clf = CNNClassifier(random_state=seed)
-                elif classifier_type == 'transformer':
-                    X_train = X_train.reshape(original_X_train_shape)
-                    X_test = X_test.reshape(original_X_test_shape)
-                    clf = TransformerClassifier(random_state=seed)
-                else:
-                    raise ValueError(f"Invalid classifier type: {classifier_type}")
-                clf.fit(X_train, y_train)
-
-                # Evaluate model
-                train_accuracy = clf.score(X_train, y_train)
-                test_accuracy = clf.score(X_test, y_test)
-
-                # Get predictions - for multiclass classification
-                train_probs = clf.predict_proba(X_train)
-                test_probs = clf.predict_proba(X_test)
-
-                # Filter test samples to only include classes that were in training
-                valid_class_mask = np.isin(y_test, clf.classes_)
-                y_test_filtered = y_test[valid_class_mask]
-                test_probs_filtered = test_probs[valid_class_mask]
-
-                # Convert y_test to one-hot encoding
-                y_test_onehot = np.zeros((len(y_test_filtered), len(clf.classes_)))
-                for i, label in enumerate(y_test_filtered):
-                    class_idx = np.where(clf.classes_ == label)[0][0]
-                    y_test_onehot[i, class_idx] = 1
-
-                y_train_onehot = np.zeros((len(y_train), len(clf.classes_)))
-                for i, label in enumerate(y_train):
-                    class_idx = np.where(clf.classes_ == label)[0][0]
-                    y_train_onehot[i, class_idx] = 1
-
-                # For multiclass ROC AUC, we need to calculate the score for each class
-                n_classes = len(clf.classes_)
-                if n_classes > 2:
-                    train_roc = roc_auc_score(y_train_onehot, train_probs, multi_class='ovr', average='macro')
-                    test_roc = roc_auc_score(y_test_onehot, test_probs_filtered, multi_class='ovr', average='macro')
-                else:
-                    train_roc = roc_auc_score(y_train_onehot, train_probs)
-                    test_roc = roc_auc_score(y_test_onehot, test_probs_filtered)
+                train_roc = test_results["train"]["roc_auc"]
+                train_accuracy = test_results["train"]["accuracy"]
+                test_roc = test_results["test"]["roc_auc"]
+                test_accuracy = test_results["test"]["accuracy"]
 
                 fold_result = {
                     "train_accuracy": float(train_accuracy),
@@ -279,6 +236,55 @@ for eval_name in eval_names:
                     "test_accuracy": float(test_accuracy),
                     "test_roc_auc": float(test_roc)
                 }
+
+                ## Train logistic regression
+                #if classifier_type == 'linear':
+                #    clf = LogisticRegression(random_state=seed, max_iter=10000, tol=1e-3)
+                #elif classifier_type == 'cnn':
+                #    X_train = X_train.reshape(original_X_train_shape)
+                #    X_test = X_test.reshape(original_X_test_shape)
+                #    clf = CNNClassifier(random_state=seed)
+                #elif classifier_type == 'transformer':
+                #    X_train = X_train.reshape(original_X_train_shape)
+                #    X_test = X_test.reshape(original_X_test_shape)
+                #    clf = TransformerClassifier(random_state=seed)
+                #else:
+                #    raise ValueError(f"Invalid classifier type: {classifier_type}")
+                #clf.fit(X_train, y_train)
+
+                # Evaluate model
+                #train_accuracy = clf.score(X_train, y_train)
+                #test_accuracy = clf.score(X_test, y_test)
+
+                ## Get predictions - for multiclass classification
+                #train_probs = clf.predict_proba(X_train)
+                #test_probs = clf.predict_proba(X_test)
+
+                ## Filter test samples to only include classes that were in training
+                #valid_class_mask = np.isin(y_test, clf.classes_)
+                #y_test_filtered = y_test[valid_class_mask]
+                #test_probs_filtered = test_probs[valid_class_mask]
+
+                ## Convert y_test to one-hot encoding
+                #y_test_onehot = np.zeros((len(y_test_filtered), len(clf.classes_)))
+                #for i, label in enumerate(y_test_filtered):
+                #    class_idx = np.where(clf.classes_ == label)[0][0]
+                #    y_test_onehot[i, class_idx] = 1
+
+                #y_train_onehot = np.zeros((len(y_train), len(clf.classes_)))
+                #for i, label in enumerate(y_train):
+                #    class_idx = np.where(clf.classes_ == label)[0][0]
+                #    y_train_onehot[i, class_idx] = 1
+
+                ## For multiclass ROC AUC, we need to calculate the score for each class
+                #n_classes = len(clf.classes_)
+                #if n_classes > 2:
+                #    train_roc = roc_auc_score(y_train_onehot, train_probs, multi_class='ovr', average='macro')
+                #    test_roc = roc_auc_score(y_test_onehot, test_probs_filtered, multi_class='ovr', average='macro')
+                #else:
+                #    train_roc = roc_auc_score(y_train_onehot, train_probs)
+                #    test_roc = roc_auc_score(y_test_onehot, test_probs_filtered)
+
                 bin_results["folds"].append(fold_result)
                 if verbose: 
                     log(f"Electrode {electrode_label} ({electrode_idx+1}/{len(all_electrode_labels)}), Fold {fold_idx+1}, Bin {bin_start}-{bin_end}: Train accuracy: {train_accuracy:.3f}, Test accuracy: {test_accuracy:.3f}, Train ROC AUC: {train_roc:.3f}, Test ROC AUC: {test_roc:.3f}", priority=0)

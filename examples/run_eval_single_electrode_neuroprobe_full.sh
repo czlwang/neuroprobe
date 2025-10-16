@@ -80,19 +80,19 @@ TRIAL=${trials[$PAIR_IDX]}
 PREPROCESS=${preprocess[$PREPROCESS_IDX]}
 SPLITS_TYPE=${splits_type[$SPLITS_TYPE_IDX]}
 CLASSIFIER_TYPE=${classifier_type[$CLASSIFIER_TYPE_IDX]}
-save_dir="data/single_electrode_eval_results_${SPLITS_TYPE}"
+save_dir="data/brainbert_results/single_electrode_eval_results_${SPLITS_TYPE}"
 
 echo "Running eval for eval $EVAL_NAME, subject $SUBJECT, trial $TRIAL, preprocess $PREPROCESS, classifier $CLASSIFIER_TYPE"
 echo "Save dir: $save_dir"
 echo "Split type: $SPLITS_TYPE"
 
-# Add the -u flag to Python to force unbuffered output
-python -u examples/eval_single_electrode.py \
-    --eval_name $EVAL_NAME \
-    --subject_id $SUBJECT \
-    --trial_id $TRIAL \
-    --preprocess.type $PREPROCESS \
-    --verbose \
-    --save_dir $save_dir \
-    --split_type $SPLITS_TYPE \
-    --classifier_type $CLASSIFIER_TYPE
+## Add the -u flag to Python to force unbuffered output
+#python -u examples/eval_single_electrode.py \
+#    --eval_name $EVAL_NAME \
+#    --subject_id $SUBJECT \
+#    --trial_id $TRIAL \
+#    --preprocess.type $PREPROCESS \
+#    --verbose \
+#    --save_dir $save_dir \
+#    --split_type $SPLITS_TYPE \
+#    --classifier_type $CLASSIFIER_TYPE
