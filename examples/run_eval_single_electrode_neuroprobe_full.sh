@@ -15,7 +15,8 @@
 nvidia-smi
 
 export PYTHONUNBUFFERED=1
-export ROOT_DIR_BRAINTREEBANK=/om2/user/zaho/braintreebank/braintreebank/
+#export ROOT_DIR_BRAINTREEBANK=/om2/user/zaho/braintreebank/braintreebank/
+export ROOT_DIR_BRAINTREEBANK=/storage/czw/braintreebank_data/
 source .venv/bin/activate
 
 # Use the BTBENCH_LITE_SUBJECT_TRIALS from btbench_config.py
@@ -86,7 +87,20 @@ echo "Running eval for eval $EVAL_NAME, subject $SUBJECT, trial $TRIAL, preproce
 echo "Save dir: $save_dir"
 echo "Split type: $SPLITS_TYPE"
 
-## Add the -u flag to Python to force unbuffered output
+# Add the -u flag to Python to force unbuffered output
+python -u examples/eval_single_electrode_brainbert.py \
+       --eval_name $EVAL_NAME     \
+       --subject_id $SUBJECT     \
+       --trial_id $TRIAL     \
+       --preprocess.type $PREPROCESS     \
+       --verbose     \
+       --save_dir $save_dir     \
+       --split_type $SPLITS_TYPE     \
+       --classifier_type $CLASSIFIER_TYPE \
+       --bin_size_seconds=5.0 \
+       --bins_start_before_word_onset_seconds=2.0 \
+       --bins_start_before_word_onset_seconds=3.5
+
 #python -u examples/eval_single_electrode.py \
 #    --eval_name $EVAL_NAME \
 #    --subject_id $SUBJECT \
