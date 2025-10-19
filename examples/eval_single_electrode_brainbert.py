@@ -100,8 +100,8 @@ if not only_1second:
         bin_ends.append(bin_end)
     bin_starts += [-bins_start_before_word_onset_seconds]
     bin_ends += [bins_end_after_word_onset_seconds]
-bin_starts += [0]
-bin_ends += [1]
+#bin_starts += [0]
+#bin_ends += [1]
 
 # Set random seeds for reproducibility
 np.random.seed(seed)
@@ -215,6 +215,7 @@ for eval_name in eval_names:
                 task_cfg = OmegaConf.create({'name': 'finetune_task'})
                 task = tasks.setup_task(task_cfg)
                 preprocessor_cfg = OmegaConf.create({"name": "stft", "freq_channel_cutoff": 40, "nperseg": 400, "noverlap": 350, "normalizing": "zscore"})
+
                 task.load_datasets(X_train, y_train, X_test, y_test, preprocessor_cfg)
                 model_cfg = OmegaConf.create({'name': 'finetune_model', 'hidden_dim': 768, 'input_dim': 40, 'upstream_ckpt': '/storage/czw/self_supervised_seeg/pretrained_weights/superlet_large_pretrained.pth', 'frozen_upstream': False})
                 model = task.build_model(model_cfg)

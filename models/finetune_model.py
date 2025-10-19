@@ -10,6 +10,7 @@ class FinetuneModel(BaseModel):
         super(FinetuneModel, self).__init__()
 
     def forward(self, inputs, pad_mask):
+        #print(inputs.shape)
         if self.frozen_upstream:
             self.upstream.eval()
             with torch.no_grad():

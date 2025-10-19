@@ -88,6 +88,7 @@ echo "Save dir: $save_dir"
 echo "Split type: $SPLITS_TYPE"
 
 # Add the -u flag to Python to force unbuffered output
+
 python -u examples/eval_single_electrode_brainbert.py \
        --eval_name $EVAL_NAME     \
        --subject_id $SUBJECT     \
@@ -98,8 +99,8 @@ python -u examples/eval_single_electrode_brainbert.py \
        --split_type $SPLITS_TYPE     \
        --classifier_type $CLASSIFIER_TYPE \
        --bin_size_seconds=5.0 \
-       --bins_start_before_word_onset_seconds=2.0 \
-       --bins_start_before_word_onset_seconds=3.5
+       --bins_start_before_word_onset_seconds=3.0 \
+       --bins_end_after_word_onset_seconds=4.0
 
 #python -u examples/eval_single_electrode.py \
 #    --eval_name $EVAL_NAME \

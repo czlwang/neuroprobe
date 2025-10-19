@@ -34,6 +34,7 @@ class FinetuneTask(BaseTask):
         self.valid_set = Subset(dataset, val_idxs)
 
         self.test_set = FinetuningDataset(X_train, y_train, preprocessor_cfg)
+        print("Length of datasets", len(self.train_set), len(self.valid_set), len(self.test_set))
         
 
     def build_model(self, cfg):
