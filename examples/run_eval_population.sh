@@ -14,7 +14,8 @@
 nvidia-smi
 
 export PYTHONUNBUFFERED=1
-export ROOT_DIR_BRAINTREEBANK=/orcd/data/fiete/001/zaho/braintreebank/ # Engaging
+#export ROOT_DIR_BRAINTREEBANK=/orcd/data/fiete/001/zaho/braintreebank/ # Engaging
+export ROOT_DIR_BRAINTREEBANK=/storage/czw/braintreebank_data/
 source .venv/bin/activate
 
 # Use the BTBENCH_LITE_SUBJECT_TRIALS from btbench_config.py
@@ -68,12 +69,20 @@ declare -a classifier_type=(
 )
 
 # Calculate indices for this task
-EVAL_IDX=$(( ($SLURM_ARRAY_TASK_ID-1) % ${#eval_names[@]} ))
-PAIR_IDX=$(( ($SLURM_ARRAY_TASK_ID-1) / ${#eval_names[@]} % ${#subjects[@]} ))
-PREPROCESS_IDX=$(( ($SLURM_ARRAY_TASK_ID-1) / ${#eval_names[@]} / ${#subjects[@]} % ${#preprocess[@]} ))
-SPLITS_TYPE_IDX=$(( ($SLURM_ARRAY_TASK_ID-1) / ${#eval_names[@]} / ${#subjects[@]} / ${#preprocess[@]} % ${#splits_type[@]} ))
+#EVAL_IDX=$(( ($SLURM_ARRAY_TASK_ID-1) % ${#eval_names[@]} ))
+#PAIR_IDX=$(( ($SLURM_ARRAY_TASK_ID-1) / ${#eval_names[@]} % ${#subjects[@]} ))
+#PREPROCESS_IDX=$(( ($SLURM_ARRAY_TASK_ID-1) / ${#eval_names[@]} / ${#subjects[@]} % ${#preprocess[@]} ))
+#SPLITS_TYPE_IDX=$(( ($SLURM_ARRAY_TASK_ID-1) / ${#eval_names[@]} / ${#subjects[@]} / ${#preprocess[@]} % ${#splits_type[@]} ))
 CLASSIFIER_TYPE_IDX=$(( ($SLURM_ARRAY_TASK_ID-1) / ${#eval_names[@]} / ${#subjects[@]} / ${#preprocess[@]} / ${#splits_type[@]} % ${#classifier_type[@]} ))
 
+PREPROCESS_IDX=2 #TODO hardcode
+SPLITS_TYPE_IDX=0 #TODO hardcode
+CLASSIFIER_TYPE_IDX=0 #TODO hardcode
+
+for EVAL_IDX in {0..14};
+do
+for PAIR_IDX in {0..25};
+do
 # Get subject, trial and eval name for this task
 EVAL_NAME=${eval_names[$EVAL_IDX]}
 SUBJECT=${subjects[$PAIR_IDX]}
@@ -81,7 +90,7 @@ TRIAL=${trials[$PAIR_IDX]}
 PREPROCESS=${preprocess[$PREPROCESS_IDX]}
 SPLITS_TYPE=${splits_type[$SPLITS_TYPE_IDX]}
 CLASSIFIER_TYPE=${classifier_type[$CLASSIFIER_TYPE_IDX]}
-save_dir="data/eval_results_lite_${SPLITS_TYPE}"
+save_dir="data/vanilla_eval_results_lite_${SPLITS_TYPE}"#TODO hardcode
 
 echo "Running eval for eval $EVAL_NAME, subject $SUBJECT, trial $TRIAL, preprocess $PREPROCESS, classifier $CLASSIFIER_TYPE"
 echo "Save dir: $save_dir"
@@ -105,3 +114,5 @@ python -u examples/eval_population.py \
     --split_type $SPLITS_TYPE \
     --classifier_type $CLASSIFIER_TYPE \
     --only_1second
+done
+done
