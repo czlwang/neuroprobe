@@ -40,9 +40,9 @@ declare -a eval_names=(
     "word_part_speech"
 )
 # to make it sequential, just aggregate the eval_names separating with a comma
-eval_names=(
-    $(IFS=,; echo "${eval_names[*]}")
-)
+#eval_names=(
+#    $(IFS=,; echo "${eval_names[*]}")
+#)
 
 declare -a preprocess=(
     'none' # no preprocessing, just raw voltage
@@ -81,7 +81,7 @@ CLASSIFIER_TYPE_IDX=0 #TODO hardcode
 
 for EVAL_IDX in {0..14};
 do
-for PAIR_IDX in {0..25};
+for PAIR_IDX in {0..11};
 do
 # Get subject, trial and eval name for this task
 EVAL_NAME=${eval_names[$EVAL_IDX]}
@@ -90,8 +90,11 @@ TRIAL=${trials[$PAIR_IDX]}
 PREPROCESS=${preprocess[$PREPROCESS_IDX]}
 SPLITS_TYPE=${splits_type[$SPLITS_TYPE_IDX]}
 CLASSIFIER_TYPE=${classifier_type[$CLASSIFIER_TYPE_IDX]}
-save_dir="data/vanilla_eval_results_lite_${SPLITS_TYPE}"#TODO hardcode
+save_dir="data/vanilla_eval_results_lite_${SPLITS_TYPE}" #TODO hardcode
 
+#echo " "
+#echo "${eval_names[0]}"
+#echo "$EVAL_IDX $PAIR_IDX"
 echo "Running eval for eval $EVAL_NAME, subject $SUBJECT, trial $TRIAL, preprocess $PREPROCESS, classifier $CLASSIFIER_TYPE"
 echo "Save dir: $save_dir"
 echo "Split type: $SPLITS_TYPE"

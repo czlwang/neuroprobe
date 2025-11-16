@@ -199,10 +199,10 @@ for eval_name in eval_names:
             log("Preparing and preprocessing data...", priority=2, indent=1)
 
             # Convert PyTorch dataset to numpy arrays for scikit-learn
-            X_train = np.concatenate([preprocess_data(item[0][:, data_idx_from:data_idx_to].unsqueeze(0), train_subject.electrode_labels, preprocess_type, preprocess_parameters).float().numpy() for item in train_dataset], axis=0)
-            y_train = np.array([item[1] for item in train_dataset])
-            X_test = np.concatenate([preprocess_data(item[0][:, data_idx_from:data_idx_to].unsqueeze(0), subject.electrode_labels, preprocess_type, preprocess_parameters).float().numpy() for item in test_dataset], axis=0)
-            y_test = np.array([item[1] for item in test_dataset])
+            X_train = np.concatenate([preprocess_data(item["data"][:, data_idx_from:data_idx_to].unsqueeze(0), train_subject.electrode_labels, preprocess_type, preprocess_parameters).float().numpy() for item in train_dataset], axis=0)
+            y_train = np.array([item["label"] for item in train_dataset])
+            X_test = np.concatenate([preprocess_data(item["data"][:, data_idx_from:data_idx_to].unsqueeze(0), subject.electrode_labels, preprocess_type, preprocess_parameters).float().numpy() for item in test_dataset], axis=0)
+            y_test = np.array([item["label"] for item in test_dataset])
             gc.collect()  # Collect after creating large arrays
 
             if splits_type == "CrossSubject":
