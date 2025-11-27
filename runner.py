@@ -177,7 +177,7 @@ class Runner():
         test_loader = self.get_batch_iterator(self.task.test_set, self.cfg.valid_batch_size, shuffle=self.cfg.shuffle, num_workers=self.cfg.num_workers, persistent_workers=self.cfg.num_workers>0)
         train_loader = self.get_batch_iterator(self.task.train_set, self.cfg.valid_batch_size, shuffle=self.cfg.shuffle, num_workers=self.cfg.num_workers, persistent_workers=self.cfg.num_workers>0)
 
-        test_outs = self.task.get_valid_outs(self.model, test_loader, self.criterion, self.device)
+        test_outs = self.task.get_valid_outs(self.model, test_loader, self.criterion, self.device, return_preds=True)
         train_outs = self.task.get_valid_outs(self.model, train_loader, self.criterion, self.device)
         log.info(f"test_results {test_outs}")
         all_outs = {"test": test_outs, "train": train_outs}

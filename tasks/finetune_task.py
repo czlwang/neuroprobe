@@ -33,7 +33,7 @@ class FinetuneTask(BaseTask):
         self.train_set = Subset(dataset, train_idxs)
         self.valid_set = Subset(dataset, val_idxs)
 
-        self.test_set = FinetuningDataset(X_train, y_train, preprocessor_cfg)
+        self.test_set = FinetuningDataset(X_test, y_test, preprocessor_cfg)
         print("Length of datasets", len(self.train_set), len(self.valid_set), len(self.test_set))
         
 
@@ -55,7 +55,7 @@ class FinetuneTask(BaseTask):
     def setup_task(cls, cfg):
         return cls(cfg)
 
-    def get_valid_outs(self, model, valid_loader, criterion, device):
+    def get_valid_outs(self, model, valid_loader, criterion, device, return_preds=False):
         model.eval()
         all_outs = {"loss":0}
         predicts, labels = [], []
@@ -76,6 +76,9 @@ class FinetuneTask(BaseTask):
         all_outs["loss"] /= len(valid_loader)
         all_outs["roc_auc"] = roc_auc
         all_outs["accuracy"] = accuracy
+        if return_preds:
+            all_outs["preds"] = predicts
+            all_outs["labels"] = labels
         return all_outs
 
     def get_batch_iterator(self, dataset, batch_size, shuffle=True, **kwargs):

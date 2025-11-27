@@ -35,7 +35,8 @@ class STFTPreprocessor(nn.Module):
             Zxx = zscore(Zxx, axis=-1)#TODO is this order correct? I put it this way to prevent input nans
             if (Zxx.std() == 0).any():
                 Zxx = np.ones_like(Zxx)
-            Zxx = Zxx[:,10:-10]
+            #Zxx = Zxx[:,10:-10]
+            Zxx = Zxx#TODO
         elif normalizing=="db":
             Zxx = np.log(Zxx)
 

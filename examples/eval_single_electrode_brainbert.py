@@ -150,6 +150,7 @@ for eval_name in eval_names:
     
     results_electrode = results["evaluation_results"][f"{subject.subject_identifier}_{trial_id}"]["electrode"]
     
+    print(len(all_electrode_labels))
     for electrode_idx, electrode_label in enumerate(all_electrode_labels):
         # Skip if electrode already processed
         if electrode_label in results_electrode:
@@ -217,7 +218,7 @@ for eval_name in eval_names:
                 preprocessor_cfg = OmegaConf.create({"name": "stft", "freq_channel_cutoff": 40, "nperseg": 400, "noverlap": 350, "normalizing": "zscore"})
 
                 task.load_datasets(X_train, y_train, X_test, y_test, preprocessor_cfg)
-                model_cfg = OmegaConf.create({'name': 'finetune_model', 'hidden_dim': 768, 'input_dim': 40, 'upstream_ckpt': '/storage/czw/self_supervised_seeg/pretrained_weights/superlet_large_pretrained.pth', 'frozen_upstream': False})
+                model_cfg = OmegaConf.create({'name': 'finetune_model', 'hidden_dim': 768, 'input_dim': 40, 'upstream_ckpt': '/storage/czw/self_supervised_seeg/pretrained_weights/stft_large_pretrained.pth', 'frozen_upstream': False})
                 model = task.build_model(model_cfg)
                 criterion_cfg = OmegaConf.create({'name': 'finetune_criterion'})
                 criterion = task.build_criterion(criterion_cfg)
@@ -238,9 +239,10 @@ for eval_name in eval_names:
                     "test_roc_auc": float(test_roc)
                 }
 
+
                 ## Train logistic regression
-                #if classifier_type == 'linear':
-                #    clf = LogisticRegression(random_state=seed, max_iter=10000, tol=1e-3)
+                if classifier_type == 'linear':
+                    clf = LogisticRegression(random_state=seed, max_iter=10000, tol=1e-3)
                 #elif classifier_type == 'cnn':
                 #    X_train = X_train.reshape(original_X_train_shape)
                 #    X_test = X_test.reshape(original_X_test_shape)
@@ -256,6 +258,7 @@ for eval_name in eval_names:
                 # Evaluate model
                 #train_accuracy = clf.score(X_train, y_train)
                 #test_accuracy = clf.score(X_test, y_test)
+                #import pdb; pdb.set_trace()
 
                 ## Get predictions - for multiclass classification
                 #train_probs = clf.predict_proba(X_train)
