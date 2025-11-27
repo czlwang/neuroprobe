@@ -1,9 +1,74 @@
+import pandas as pd
 import os
 from glob import glob as glob
 import random
 import json
 
 data_root = "/storage/czw/braintreebank_data"
+
+#https://bookdown.org/u0243256/tbicc/freesurfer.html
+dk2text_d = {'supramarginal': 'supramarginal',
+             'postcentral': 'postcentral',
+             'medialorbitofrontal': 'medial orbitofrontal',
+             'caudalmiddlefrontal': 'caudal middle frontal',
+             'posteriorcingulate': 'posterior cingulate',
+             'middletemporal': 'middle temporal',
+             'superiortemporal': 'superior temporal',
+             'bankssts': 'bankssts',
+             'superiorparietal': 'superior parietal',
+             'precuneus': 'precuneus',
+             'entorhinal': 'entorhinal',
+             'parstriangularis': 'pars triangularis',
+             'precentral': 'precentral',
+             'parsorbitalis': 'pars orbitalis',
+             'insula': 'insula',
+             'parahippocampal': 'parahippocampal',
+             'inferiortemporal': 'inferior temporal',
+             'parsopercularis': 'pars opercularis',
+             'fusiform': 'fusiform',
+             'transversetemporal': 'transverse temporal',
+             'superiorfrontal': 'superior frontal',
+             'paracentral': 'paracentral',
+             'lateralorbitofrontal': 'lateral orbitofrontal',
+             'caudalanteriorcingulate': 'caudal anterior cingulate',
+             'inferiorparietal': 'inferior parietal',
+             'rostralanteriorcingulate': 'rostral anterior cingulate',
+             'isthmuscingulate': 'isthmus cingulate',
+             'temporalpole': 'temporal pole',
+             'rostralmiddlefrontal': 'rostral middle frontal',
+             'amygdala': 'Amygdala',
+             'hippocampus': 'Hippocampus',
+             'inf-lat-vent': 'Inf. Lat. Vent.',
+             'putamen': 'putamen',
+             'unknown': 'unknown'}
+
+dk_names = ["superior frontal", "rostral middle frontal", "caudal middle frontal", "pars opercularis",
+           "pars triangularis", "pars orbitalis", "lateral orbitofrontal", "medial orbitofrontal",
+           "precentral", "paracentral", "frontal pole", "superior parietal", "inferior parietal",
+           "supramarginal", "postcentral", "precuneus", "superior temporal", "middle temporal",
+           "inferior temporal", "bankssts", "fusiform", "transverse temporal",
+           "entorhinal","temporal pole", "parahippocampal", "lateral occipital", "lingual", "cuneus",
+           "pericalcarine","rostral anterior cingulate", "caudal anterior cingulate",
+           "posterior cingulate","isthmus cingulate", "insula"]
+
+region_ids = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6]
+name2region_id = {n:x for x,n in zip(region_ids, dk_names)}
+region_id2region_name = {x+1:n for x,n in enumerate(["Frontal", "Parietal", "Temporal", "Occipital", "Cingulate", "Insula"])}
+
+def dk2text(label):
+    l = label.replace('ctx-','')
+    l = l.replace('rh-','')
+    l = l.replace('lh-','')
+    l = l.replace('Left-','')
+    l = l.replace('Right-','')
+    l = l.lower()
+    return dk2text_d[l]
+
+def dk2region(label):
+    dk_name = dk2text(label)
+    if dk_name in name2region_id:
+        return region_id2region_name[name2region_id[dk_name]]
+    return dk_name
 
 def stem_electrode_name(name):
     #names look like 'O1aIb4', 'O1aIb5', 'O1aIb6', 'O1aIb7'
@@ -52,32 +117,32 @@ selection = {}
 
 localization_root = os.path.join(data_root, "localization")
 all_localization_dfs = {}
-for fpath in glob.glob(f'{localization_root}/*'):
-    subject = os.path.split(fpath)[1].split(".")[0]
-    all_localization_dfs[subject] = pd.read_csv(fpath)
-
-import pdb; pdb.set_trace()
+for fpath in glob(f'{localization_root}/sub_*/*.csv'):
+    subject = fpath.split("/")[-2]
+    local_df = pd.read_csv(fpath)
+    local_df["common_name"] = [dk2region(x) for x in local_df.DesikanKilliany]
+    all_localization_dfs[subject] = local_df
 
 for subject in neuroprobe_lite_electrodes:
-    print(subject, len(neuroprobe_lite_electrodes[subject]))
     subject_id = "sub_" + subject[len("btbank"):]
     laplacian_electrodes = get_all_laplacian_electrodes(get_all_electrodes(subject_id, data_root))
 
-    #btbank_key = "btbank" + subject.split("_")[1]
-    #electrodes = clean_electrodes[subject]
-    #print(len(electrodes))
+    #only select temporal and frontal electrodes
+    region_elecs = all_localization_dfs[subject_id][all_localization_dfs[subject_id].common_name.str.contains("Temporal") | all_localization_dfs[subject_id].common_name.str.contains("Frontal")] 
+    region_elecs = set(region_elecs.Electrode).intersection(laplacian_electrodes)
+
     select_k = len(neuroprobe_lite_electrodes[subject])
-    print(len(laplacian_electrodes))
+    print(len(region_elecs), select_k)
+    #prioritize the region elecs
     if select_k <= len(laplacian_electrodes):
-        random_electrodes = random.sample(laplacian_electrodes, select_k)
+        random_region_electrodes = random.sample(list(region_elecs), min(select_k,len(region_elecs)))
+        random_filler_electrodes = random.sample(list(set(laplacian_electrodes).difference(region_elecs)), max(select_k-len(region_elecs), 0))
+        random_electrodes = random_region_electrodes + random_filler_electrodes
+        assert len(set(random_electrodes)) == select_k
     else:
         print(f"{subject} not enough electrodes")
         random_electrodes = neuroprobe_lite_electrodes[subject]
     selection[subject] = random_electrodes
 
-with open(f"/storage/czw/neuroprobe/neuroprobe/random_lite_selection_seed_{seed}.json", "w") as f:
+with open(f"/storage/czw/neuroprobe/neuroprobe/anatomical_lite_selection_seed_{seed}.json", "w") as f:
     clean_electrodes = json.dump(selection, f)
-
-
-
-
