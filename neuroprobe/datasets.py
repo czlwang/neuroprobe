@@ -1,3 +1,4 @@
+import random
 import torch
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
@@ -259,7 +260,9 @@ class BrainTreebankSubjectTrialBenchmarkDataset(Dataset):
         for label in list(self.label_indices.keys()):
             self.label_indices[label] = np.sort(self.rng.choice(self.label_indices[label], size=n_samples_each, replace=False))
             if self.max_samples is not None: # if max_samples is set, we need to truncate the indices to the max_samples
-                self.label_indices[label] = self.label_indices[label][:self.max_samples//self.n_classes]
+                #self.label_indices[label] = self.label_indices[label][:self.max_samples//self.n_classes]
+                random.seed(0) #TODO
+                self.label_indices[label] = random.sample(self.label_indices[label], self.max_samples//self.n_classes)
         self.n_samples = sum([len(self.label_indices[label]) for label in self.label_indices])
 
         self.cache_window_from = None

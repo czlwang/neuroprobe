@@ -90,7 +90,11 @@ TRIAL=${trials[$PAIR_IDX]}
 PREPROCESS=${preprocess[$PREPROCESS_IDX]}
 SPLITS_TYPE=${splits_type[$SPLITS_TYPE_IDX]}
 CLASSIFIER_TYPE=${classifier_type[$CLASSIFIER_TYPE_IDX]}
-save_dir="data/vanilla_eval_results_lite_${SPLITS_TYPE}" #TODO hardcode
+#save_dir="data/vanilla_eval_results_lite_${SPLITS_TYPE}" #TODO hardcode
+#save_dir="data/random_seed_0_results_lite_${SPLITS_TYPE}" #TODO hardcode
+#save_dir="data/debug_results_lite_${SPLITS_TYPE}" #TODO hardcode
+#save_dir="data/anatomical_seed_0_results_lite_${SPLITS_TYPE}" #TODO hardcode
+save_dir="data/labels_random_seed_0_results_lite_${SPLITS_TYPE}" #TODO hardcode
 
 #echo " "
 #echo "${eval_names[0]}"
